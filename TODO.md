@@ -1,0 +1,4 @@
+ - [ ] Disable all global keyboard shortcuts so that the kids can't accidentally exit the app
+ - [ ] Support full screen mode
+ - [ ] Add intro screen
+ - [ ] Embed or download images so that we don't need to distribute them separately
