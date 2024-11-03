@@ -1,8 +1,9 @@
 use bevy::prelude::*;
 use bevy_tweening::{
     lens::TransformPositionLens, lens::TransformRotationLens, lens::TransformScaleLens, Animator,
-    EaseFunction, RepeatCount, RepeatStrategy, Tracks, Tween, TweeningPlugin,
+    EaseFunction, RepeatCount, RepeatStrategy, Tracks, Tween, TweeningPlugin
 };
+use bevy::window::PrimaryWindow;
 use rand::prelude::*;
 use std::env::current_dir;
 use std::fs;
@@ -19,6 +20,9 @@ struct Configuration {
     emoji_dir: PathBuf,
 }
 
+#[derive(Component)]
+struct Animating;
+
 const EMOJI_RESOURCES_DIR: &str = "resources/openmoji-618x618-color";
 
 fn main() {
@@ -30,6 +34,7 @@ fn main() {
         .add_systems(Startup, setup)
         .add_systems(Startup, setup_stars)
         .add_systems(Update, handle_key_presses)
+        .add_systems(Update, despawn_after_animating)
         .run();
 }
 
@@ -104,7 +109,11 @@ fn handle_key_presses(
     asset_server: ResMut<AssetServer>,
     keyboard_input: Res<ButtonInput<KeyCode>>,
     resources: Res<Resources>,
+    query: Query<&Window, With<PrimaryWindow>>,
 ) {
+
+    let width = query.iter().next().unwrap().width();
+    let height = query.iter().next().unwrap().height();
     let key_it = keyboard_input.get_just_pressed();
     if key_it.len() > 0 {
         for _ in key_it {
@@ -112,8 +121,8 @@ fn handle_key_presses(
             let texture_handle: Handle<Image> =
                 asset_server.load(resources.emojis[rand_emoji_idx].clone());
 
-            let rand_x = rand::thread_rng().gen_range(-500.0..500.0);
-            let rand_y = rand::thread_rng().gen_range(-500.0..500.0);
+            let rand_x = rand::thread_rng().gen_range(-width/2.0..width/2.0);
+            let rand_y = rand::thread_rng().gen_range(-height/2.0..height/2.0);
             let rand_size = rand::thread_rng().gen_range(50.0..200.0);
 
             let random_animator = random_tween();
@@ -132,6 +141,7 @@ fn handle_key_presses(
                     ..Default::default()
                 },
                 random_animator,
+                Animating,
             ));
         }
     }
@@ -141,8 +151,10 @@ fn setup_stars(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     configuration: Res<Configuration>,
+    query: Query<&Window, With<PrimaryWindow>>,
 ) {
     let star_texture = asset_server.load(configuration.emoji_dir.clone().join("2B50.png"));
+
 
     for _ in 0..100 {
         let rand_x = rand::thread_rng().gen_range(-500.0..500.0);
@@ -173,5 +185,13 @@ fn setup_stars(
             },
             animator,
         ));
+    }
+}
+
+fn despawn_after_animating(mut commands: Commands, query: Query<(Entity, &Animator<Transform>), With<Animating>>) {
+    for (entity, animator) in query.iter() {
+        if animator.tweenable().progress() == 1.0 {
+            commands.entity(entity).despawn();
+        }
     }
 }
