@@ -32,7 +32,6 @@ fn main() {
         .add_plugins(TweeningPlugin)
         .insert_resource(Configuration { emoji_dir })
         .add_systems(Startup, setup)
-        .add_systems(Startup, setup_stars)
         .add_systems(Update, handle_key_presses)
         .add_systems(Update, despawn_after_animating)
         .run();
@@ -147,46 +146,7 @@ fn handle_key_presses(
     }
 }
 
-fn setup_stars(
-    mut commands: Commands,
-    asset_server: Res<AssetServer>,
-    configuration: Res<Configuration>,
-    query: Query<&Window, With<PrimaryWindow>>,
-) {
-    let star_texture = asset_server.load(configuration.emoji_dir.clone().join("2B50.png"));
 
-
-    for _ in 0..100 {
-        let rand_x = rand::thread_rng().gen_range(-500.0..500.0);
-        let rand_y = rand::thread_rng().gen_range(-500.0..500.0);
-
-        let transform_tween = Tween::new(
-            EaseFunction::QuadraticInOut,
-            Duration::from_secs(1),
-            TransformPositionLens {
-                start: Vec3::new(rand_x, rand_y, 0.),
-                end: Vec3::new(rand_x + 100., rand_y + 100.0, 5.),
-            },
-        )
-        .with_repeat_strategy(RepeatStrategy::MirroredRepeat)
-        .with_repeat_count(RepeatCount::Infinite);
-
-        let animator = Animator::new(transform_tween);
-
-        commands.spawn((
-            SpriteBundle {
-                texture: star_texture.clone(),
-                transform: Transform {
-                    translation: Vec3::new(rand_x, rand_y, 0.),
-                    scale: Vec3::new(0.01, 0.01, 0.01),
-                    ..Default::default()
-                },
-                ..Default::default()
-            },
-            animator,
-        ));
-    }
-}
 
 fn despawn_after_animating(mut commands: Commands, query: Query<(Entity, &Animator<Transform>), With<Animating>>) {
     for (entity, animator) in query.iter() {
